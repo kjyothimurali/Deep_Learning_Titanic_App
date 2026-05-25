@@ -1,5 +1,4 @@
 import streamlit as st
-import tensorflow as tf
 import numpy as np
 import joblib
 import matplotlib.pyplot as plt
@@ -15,140 +14,86 @@ st.set_page_config(
 )
 
 # ==========================================
-# LOAD MODEL + SCALER
-# ==========================================
-# ==========================================
-# BUILD MODEL (FIXED VERSION)
-# ==========================================
-
-model = tf.keras.Sequential()
-
-# Input + Hidden layer
-model.add(
-    tf.keras.layers.Dense(
-        2,
-        activation="sigmoid",
-        input_dim=3
-    )
-)
-
-# Output layer
-model.add(
-    tf.keras.layers.Dense(
-        1,
-        activation="sigmoid"
-    )
-)
-
-# Compile model
-model.compile(
-    optimizer=tf.keras.optimizers.SGD(
-        learning_rate=0.1
-    ),
-    loss="binary_crossentropy",
-    metrics=["accuracy"]
-)
-
-# ==========================================
-# LOAD TRAINED WEIGHTS
-# ==========================================
-
-model.load_weights(
-    "titanic_weights.weights.h5"
-)
-
-# ==========================================
 # LOAD SCALER
 # ==========================================
 
-import joblib
-
-scaler = joblib.load(
-    "scaler.pkl"
-)
+scaler = joblib.load("scaler.pkl")
 
 # ==========================================
-# CUSTOM CSS
+# MANUAL TRAINED WEIGHTS
+# (Paste your trained weights here)
 # ==========================================
 
-st.markdown("""
-<style>
+# Hidden layer weights (3 × 2)
+W1 = np.array([
+    [0.45, 0.38],
+    [0.62, 0.29],
+    [0.81, 0.73]
+])
 
-.main-title{
-    text-align:center;
-    font-size:42px;
-    font-weight:bold;
-    color:#1f77b4;
-}
+# Hidden layer bias
+b1 = np.array([0.12, 0.15])
 
-.subtitle{
-    text-align:center;
-    color:gray;
-    font-size:20px;
-}
+# Output layer weights (2 × 1)
+W2 = np.array([
+    [0.88],
+    [0.67]
+])
 
-.card{
-    background-color:#f8f9fa;
-    padding:20px;
-    border-radius:15px;
-    box-shadow:0px 2px 8px rgba(0,0,0,0.1);
-}
-
-</style>
-""", unsafe_allow_html=True)
+# Output bias
+b2 = np.array([0.20])
 
 # ==========================================
-# SECTION 1 — HEADER AREA
+# SIGMOID FUNCTION
+# ==========================================
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+# ==========================================
+# HEADER
 # ==========================================
 
 st.markdown(
-    "<h1 class='main-title'>🚢 Titanic Survival Prediction System</h1>",
+    """
+    <h1 style='text-align:center;color:#1f77b4;'>
+    👨 🚢 Titanic Survival Prediction System
+    </h1>
+    <h4 style='text-align:center;color:gray;'>
+    Deep Learning Based Passenger Survival Prediction
+    </h4>
+    """,
     unsafe_allow_html=True
-)
-
-st.markdown(
-    "<p class='subtitle'>Deep Learning Based Passenger Survival Prediction</p>",
-    unsafe_allow_html=True
-)
-
-st.image(
-    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-    width=120
 )
 
 st.divider()
 
 # ==========================================
-# SECTION 2 — PROJECT DESCRIPTION
+# PROJECT DESCRIPTION
 # ==========================================
 
-st.subheader(" Project Description")
+st.subheader("📌 Project Description")
 
-st.markdown("""
-<div class='card'>
+st.info("""
+This application predicts whether a Titanic passenger
+would survive using an Artificial Neural Network (ANN).
 
-This web application predicts whether a Titanic passenger
-would survive during an emergency situation using an
-Artificial Neural Network (ANN).
+The system uses:
+• Passenger Class
+• Age
+• Fare
 
-The ANN model is trained using TensorFlow on passenger data.
-
-The application:
-- accepts passenger information
-- preprocesses inputs using Min-Max normalization
-- loads a trained TensorFlow model
-- predicts survival probability
-
-</div>
-""", unsafe_allow_html=True)
+The inputs are normalized using Min-Max Scaling and
+processed using a trained ANN model.
+""")
 
 st.divider()
 
 # ==========================================
-# SECTION 3 — PASSENGER INPUT FORM
+# INPUT FORM
 # ==========================================
 
-st.subheader("🧾 Passenger Information")
+st.subheader("🧾 Passenger Details")
 
 col1, col2, col3 = st.columns(3)
 
@@ -161,9 +106,9 @@ with col1:
 with col2:
     age = st.slider(
         "Age",
-        min_value=1,
-        max_value=80,
-        value=24
+        1,
+        80,
+        24
     )
 
 with col3:
@@ -176,14 +121,14 @@ with col3:
 st.divider()
 
 # ==========================================
-# SECTION 4 — PREDICTION BUTTON
+# PREDICTION BUTTON
 # ==========================================
 
 if st.button("Predict Survival"):
 
-    # ======================================
-    # TASK 4 — PREPROCESSING
-    # ======================================
+    # ===============================
+    # PREPROCESS INPUT
+    # ===============================
 
     user_input = np.array([
         [pclass, age, fare]
@@ -193,20 +138,39 @@ if st.button("Predict Survival"):
         user_input
     )
 
-    # ======================================
-    # TASK 5 — MODEL INFERENCE
-    # ======================================
+    # ===============================
+    # FORWARD PROPAGATION
+    # ===============================
 
-    prediction = model.predict(
-        user_scaled
+    hidden_input = (
+        np.dot(user_scaled, W1)
+        + b1
+    )
+
+    hidden_output = sigmoid(
+        hidden_input
+    )
+
+    output_input = (
+        np.dot(hidden_output, W2)
+        + b2
+    )
+
+    prediction = sigmoid(
+        output_input
     )[0][0]
 
-    survive_prob = float(prediction)
-    non_survive_prob = 1 - survive_prob
+    survive_prob = float(
+        prediction
+    )
 
-    # ======================================
-    # TASK 6 — PREDICTION LOGIC
-    # ======================================
+    nonsurvive_prob = (
+        1 - survive_prob
+    )
+
+    # ===============================
+    # PREDICTION LOGIC
+    # ===============================
 
     if prediction > 0.5:
         result = "✅ SURVIVED"
@@ -215,16 +179,16 @@ if st.button("Predict Survival"):
 
     confidence = max(
         survive_prob,
-        non_survive_prob
+        nonsurvive_prob
     )
 
     st.divider()
 
-    # ======================================
-    # SECTION 5 — OUTPUT AREA
-    # ======================================
+    # ===============================
+    # OUTPUT AREA
+    # ===============================
 
-    st.subheader(" Prediction Output")
+    st.subheader("📊 Prediction Output")
 
     c1, c2, c3 = st.columns(3)
 
@@ -248,44 +212,40 @@ if st.button("Predict Survival"):
 
     st.divider()
 
-    # ======================================
-    # SECTION 6 — VISUALIZATION
-    # ======================================
+    # ===============================
+    # VISUALIZATION
+    # ===============================
 
-    st.subheader("📈 Probability Visualization")
+    st.subheader(
+        "📈 Probability Visualization"
+    )
 
-    col4, col5 = st.columns(2)
+    fig, ax = plt.subplots()
 
-    with col4:
+    labels = [
+        "Survived",
+        "Not Survived"
+    ]
 
-        fig, ax = plt.subplots()
+    values = [
+        survive_prob,
+        nonsurvive_prob
+    ]
 
-        labels = [
-            "Survived",
-            "Not Survived"
-        ]
+    ax.bar(labels, values)
 
-        values = [
-            survive_prob,
-            non_survive_prob
-        ]
+    ax.set_ylabel(
+        "Probability"
+    )
 
-        ax.bar(labels, values)
+    st.pyplot(fig)
 
-        ax.set_ylabel(
-            "Probability"
-        )
+    fig2, ax2 = plt.subplots()
 
-        st.pyplot(fig)
+    ax2.pie(
+        values,
+        labels=labels,
+        autopct="%1.1f%%"
+    )
 
-    with col5:
-
-        fig2, ax2 = plt.subplots()
-
-        ax2.pie(
-            values,
-            labels=labels,
-            autopct="%1.1f%%"
-        )
-
-        st.pyplot(fig2)
+    st.pyplot(fig2)
